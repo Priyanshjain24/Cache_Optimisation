@@ -8,7 +8,7 @@ prefetch: build
 	g++ pa1-the-matrix.c -D OPTIMIZE_PREFETCH -o $(BUILD)/$@
 
 simd: build
-	g++ pa1-the-matrix.c -D OPTIMIZE_SIMD -o $(BUILD)/$@
+	g++ -mavx pa1-the-matrix.c -D OPTIMIZE_SIMD -o $(BUILD)/$@
 
 blocking-prefetch: build
 	g++ pa1-the-matrix.c -D OPTIMIZE_BLOCKING_PREFETCH -o $(BUILD)/$@

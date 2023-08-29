@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <time.h>			// for time-keeping
 #include <xmmintrin.h> 		// for intrinsic functions
+#include <iostream>
+#include <immintrin.h>
 
 // defines
 // NOTE: you can change this value as per your requirement
@@ -81,6 +83,26 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 */
 void simd_mat_mul(double *A, double *B, double *C, int dim) {
 
+    for (int i = 0; i < dim; ++i) {
+        for (int j = 0; j < dim; ++j) {
+            __m256d sum = _mm256_setzero_pd();  // Initialize a SIMD register to zero
+
+            for (int k = 0; k < dim; k += 4) {
+                __m256d a = _mm256_loadu_pd(&A[i * dim + k]); // Load 4 elements from row i of matrix A
+                __m256d b = _mm256_loadu_pd(&B[k * dim + j]); // Load 4 elements from column j of matrix B
+                __m256d prod = _mm256_mul_pd(a, b);    // Element-wise multiplication
+                sum = _mm256_add_pd(sum, prod);       // Accumulate the products
+            }
+
+            sum = _mm256_hadd_pd(sum, sum); // Horizontal sum
+            sum = _mm256_hadd_pd(sum, sum);
+
+            double result[4];
+            _mm256_storeu_pd(result, sum);
+
+            C[i * dim + j] = result[0];
+	}
+    }
 }
 
 /**
@@ -132,6 +154,7 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
 void simd_prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 }
+
 
 /**
  * @brief 		Bonus Task 4: Performs matrix multiplication of two matrices using blocking along with SIMD instructions and software prefetching.
