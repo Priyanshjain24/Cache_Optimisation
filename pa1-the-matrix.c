@@ -41,6 +41,21 @@ void initialize_matrix(double *matrix, int rows, int cols) {
 }
 
 /**
+ * @brief 		Initialize result matrix of given dimension with 0.
+ * @param 		matrix 		pointer to the matrix
+ * @param 		rows 		number of rows in the matrix
+ * @param 		cols 		number of columns in the matrix
+ */
+void initialize_result_matrix(double *matrix, int rows, int cols) {
+
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			matrix[i * cols + j] = 0.0;
+		}
+	}
+}
+
+/**
  * @brief 		Performs matrix multiplication of two matrices.
  * @param 		A 			pointer to the first matrix
  * @param 		B 			pointer to the second matrix
@@ -215,6 +230,9 @@ int main(int argc, char **argv) {
 	#ifdef OPTIMIZE_BLOCKING
 		// Task 1: perform blocking matrix multiplication
 
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_blocking_mult = clock();
 		blocking_mat_mul(A, B, C, matrix_dim, BLOCK_SIZE);
 		t_blocking_mult = clock() - t_blocking_mult;
@@ -226,6 +244,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_SIMD
 		// Task 2: perform matrix multiplication with SIMD instructions
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_simd_mult = clock();
 		simd_mat_mul(A, B, C, matrix_dim);
 		t_simd_mult = clock() - t_simd_mult;
@@ -237,6 +259,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_PREFETCH
 		// Task 3: perform matrix multiplication with prefetching
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_prefetch_mult = clock();
 		prefetch_mat_mul(A, B, C, matrix_dim);
 		t_prefetch_mult = clock() - t_prefetch_mult;
@@ -248,6 +274,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD
 		// Bonus Task 1: perform matrix multiplication using blocking along with SIMD instructions
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_blocking_simd_mult = clock();
 		blocking_simd_mat_mul(A, B, C, matrix_dim, BLOCK_SIZE);
 		t_blocking_simd_mult = clock() - t_blocking_simd_mult;
@@ -259,6 +289,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_BLOCKING_PREFETCH
 		// Bonus Task 2: perform matrix multiplication using blocking along with software prefetching
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_blocking_prefetch_mult = clock();
 		blocking_prefetch_mat_mul(A, B, C, matrix_dim, BLOCK_SIZE);
 		t_blocking_prefetch_mult = clock() - t_blocking_prefetch_mult;
@@ -270,6 +304,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_SIMD_PREFETCH
 		// Bonus Task 3: perform matrix multiplication using SIMD instructions along with software prefetching
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_simd_prefetch_mult = clock();
 		simd_prefetch_mat_mul(A, B, C, matrix_dim);
 		t_simd_prefetch_mult = clock() - t_simd_prefetch_mult;
@@ -281,6 +319,10 @@ int main(int argc, char **argv) {
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD_PREFETCH
 		// Bonus Task 4: perform matrix multiplication using blocking, SIMD instructions and software prefetching
+
+		// initialize result matrix to 0
+		initialize_result_matrix(C, matrix_dim, matrix_dim);
+
 		t_blocking_simd_prefetch_mult = clock();
 		blocking_simd_prefetch_mat_mul(A, B, C, matrix_dim, BLOCK_SIZE);
 		t_blocking_simd_prefetch_mult = clock() - t_blocking_simd_prefetch_mult;
