@@ -2,7 +2,7 @@ BUILD=build
 CC=g++
 
 blocking: build
-	g++ pa1-the-matrix.c -D OPTIMIZE_BLOCKING -o $(BUILD)/$@
+	g++ -mavx pa1-the-matrix.c -D OPTIMIZE_BLOCKING -o $(BUILD)/$@
 
 prefetch: build
 	g++ pa1-the-matrix.c -D OPTIMIZE_PREFETCH -o $(BUILD)/$@

@@ -11,7 +11,7 @@
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define BLOCK_SIZE	100		// size of the block
+#define BLOCK_SIZE 10		// size of the block
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -86,6 +86,19 @@ void normal_mat_mul(double *A, double *B, double *C, int dim) {
 */
 void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
 
+	for (int i=0; i<dim; i+=block_size){
+		for (int j=0; j<dim; j+=block_size){
+			for (int k=0; k<dim; k+=block_size){
+				for (int i1=i; i1<i+block_size; i1++){
+					for (int j1=j; j1<j+block_size; j1++){
+						for (int k1 = k; k1<k+block_size; k1++){
+							C[i1 + dim * j1] += A[i1 + dim* k1] * B[k1 + dim *j1];
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 /**
