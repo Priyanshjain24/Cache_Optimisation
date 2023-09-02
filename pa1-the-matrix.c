@@ -117,8 +117,7 @@ void simd_mat_mul(double *A, double *B, double *C, int dim) {
             for (int k = 0; k < dim - (dim % 8); k += 8) {
                 __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
                 __m512d b = _mm512_loadu_pd(&B[k * dim + j]); // Load 8 elements from column j of matrix B
-                __m512d prod = _mm512_mul_pd(a, b);    // Element-wise multiplication
-                sum = _mm512_add_pd(sum, prod);       // Accumulate the products
+				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
             }
 
             double result[8];
@@ -157,7 +156,34 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
  * @note 		The block size should be a multiple of the dimension of the matrices.
 */
 void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
+    for (int i = 0; i < dim; i += block_size) {
+        for (int j = 0; j < dim; j += block_size) {
+            for (int k = 0; k < dim; k += block_size) {
+                for (int i1 = i; i1 < i + block_size; i1++) {
+                    for (int j1 = j; j1 < j + block_size; j1++) {
+                        __m512d sum = _mm512_setzero_pd(); // Initialize a 512-bit SIMD register to zero
 
+                        for (int k1 = k; k1 < k + block_size; k1 += 8) {
+                            __m512d a = _mm512_loadu_pd(&A[i1 * dim + k1]);
+                            __m512d b = _mm512_loadu_pd(&B[k1 * dim + j1]);
+                            sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
+                        }
+
+                        double result[8];
+                        _mm512_storeu_pd(result, sum);
+
+                        // Accumulate the results from SIMD instructions
+                        C[i1 * dim + j1] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
+
+                        // Handle the remaining values normally
+                        for (int k1 = k + block_size - (block_size % 8); k1 < k + block_size; k1++) {
+                            C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
