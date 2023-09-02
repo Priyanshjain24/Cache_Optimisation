@@ -110,26 +110,28 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
  * @note 		You can assume that the matrices are square matrices.
 */
 void simd_mat_mul(double *A, double *B, double *C, int dim) {
-
     for (int i = 0; i < dim; ++i) {
         for (int j = 0; j < dim; ++j) {
-            __m256d sum = _mm256_setzero_pd();  // Initialize a SIMD register to zero
+            __m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
 
-            for (int k = 0; k < dim; k += 4) {
-                __m256d a = _mm256_loadu_pd(&A[i * dim + k]); // Load 4 elements from row i of matrix A
-                __m256d b = _mm256_loadu_pd(&B[k * dim + j]); // Load 4 elements from column j of matrix B
-                __m256d prod = _mm256_mul_pd(a, b);    // Element-wise multiplication
-                sum = _mm256_add_pd(sum, prod);       // Accumulate the products
+            for (int k = 0; k < dim - (dim % 8); k += 8) {
+                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
+                __m512d b = _mm512_loadu_pd(&B[k * dim + j]); // Load 8 elements from column j of matrix B
+                __m512d prod = _mm512_mul_pd(a, b);    // Element-wise multiplication
+                sum = _mm512_add_pd(sum, prod);       // Accumulate the products
             }
 
-            sum = _mm256_hadd_pd(sum, sum); // Horizontal sum
-            sum = _mm256_hadd_pd(sum, sum);
+            double result[8];
+            _mm512_storeu_pd(result, sum);
 
-            double result[4];
-            _mm256_storeu_pd(result, sum);
+            // Add the result of SIMD instructions to the destination matrix
+            C[i * dim + j] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
 
-            C[i * dim + j] = result[0];
-	}
+            // Handle the remaining values normally
+            for (int k = dim - (dim % 8); k < dim; ++k) {
+                C[i * dim + j] += A[i * dim + k] * B[k * dim + j];
+            }
+        }
     }
 }
 
