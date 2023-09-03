@@ -92,7 +92,7 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 				for (int i1=i; i1<i+block_size; i1++){
 					for (int j1=j; j1<j+block_size; j1++){
 						for (int k1 = k; k1<k+block_size; k1++){
-							C[i1 + dim * j1] += A[i1 + dim* k1] * B[k1 + dim *j1];
+							C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
 						}
 					}
 				}
@@ -144,6 +144,24 @@ void simd_mat_mul(double *A, double *B, double *C, int dim) {
 */
 void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
+	for (int i = 0; i < dim; i++) {
+		for (int j = 0; j < dim; j++) {
+			double sum=0.0;
+
+			_mm_prefetch(&A[i*dim], _MM_HINT_T0);
+			_mm_prefetch(&B[j],_MM_HINT_T0);
+
+			for (int k = 0; k < dim; k++) {
+				sum += A[i * dim + k] * B[k * dim + j];
+
+				_mm_prefetch(&A[i*dim + k + dim], _MM_HINT_T0);
+				_mm_prefetch(&B[k*dim + j + dim],_MM_HINT_T0);
+			}
+			C[i*dim+j]=sum;
+		}
+	}
+
+	return;
 }
 
 /**
