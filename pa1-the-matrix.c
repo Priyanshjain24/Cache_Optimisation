@@ -6,12 +6,11 @@
 #include <stdio.h>
 #include <time.h>			// for time-keeping
 #include <xmmintrin.h> 		// for intrinsic functions
-#include <iostream>
 #include <immintrin.h>
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define BLOCK_SIZE 10		// size of the block
+#define BLOCK_SIZE 50		// size of the block
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -157,6 +156,7 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 				_mm_prefetch(&A[i*dim + k + dim], _MM_HINT_T0);
 				_mm_prefetch(&B[k*dim + j + dim],_MM_HINT_T0);
 			}
+
 			C[i*dim+j]=sum;
 		}
 	}
