@@ -24,6 +24,7 @@ Blocking improves matrix multiplication performance by optimizing cache usage, r
    - Inside the resulting matrix's block, utilize two inner loops to process individual elements.
    - Employ an additional inner loop to traverse through all rows and columns of input matrices for block-wise matrix multiplication.
 
+<!-- This is a hidden text -->
 <style>
   table {
     border-collapse: collapse;
@@ -36,6 +37,7 @@ Blocking improves matrix multiplication performance by optimizing cache usage, r
     padding: 8px;
   }
 </style>
+<!-- This is a hidden text -->
 
 <table>
 <caption><b>Execution Time Table</b></caption>
