@@ -88,9 +88,9 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 	for (int i=0; i<dim; i+=block_size){
 		for (int j=0; j<dim; j+=block_size){
 			for (int k=0; k<dim; k+=block_size){
-				for (int i1=i; i1<i+block_size; i1++){
-					for (int j1=j; j1<j+block_size; j1++){
-						for (int k1 = k; k1<k+block_size; k1++){
+				for (int k1=k; k1<k+block_size; k1++){
+					for (int i1=i; i1<i+block_size; i1++){
+						for (int j1 = j; j1<j+block_size; j1++){
 							C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
 						}
 					}
