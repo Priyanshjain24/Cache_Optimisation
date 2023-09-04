@@ -11,6 +11,7 @@
 // defines
 // NOTE: you can change this value as per your requirement
 #define BLOCK_SIZE 50		// size of the block
+#define Prefetch_Jump 7     // No of iterations later for which prefetch is called
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -144,17 +145,29 @@ void simd_mat_mul(double *A, double *B, double *C, int dim) {
 void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 	for (int i = 0; i < dim; i++) {
-		for (int j = 0; j < dim; j++) {
+		__builtin_prefetch(&A[i*dim],0,3);
+		__builtin_prefetch(&B[0],0,1);
+		__builtin_prefetch(&C[i*dim],1,1);
+
+
 			double sum=0.0;
-
-			_mm_prefetch(&A[i*dim], _MM_HINT_T0);
-			_mm_prefetch(&B[j],_MM_HINT_T0);
-
 			for (int k = 0; k < dim; k++) {
+				__builtin_prefetch(&B[(k+Prefetch_Jump)*dim],0,1);
+				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,2);
+				sum += A[i * dim + k] * B[k * dim];
+			}
+			C[i*dim]=sum;
+
+		for (int j = 1; j < dim; j++) {
+
+			__builtin_prefetch(&C[i*dim+j],1,1);
+			sum=0.0;
+			for (int k = 0; k < dim; k++) {
+
+				__builtin_prefetch(&B[(k+Prefetch_Jump)*dim+j],0,1);
+
 				sum += A[i * dim + k] * B[k * dim + j];
 
-				_mm_prefetch(&A[i*dim + k + dim], _MM_HINT_T0);
-				_mm_prefetch(&B[k*dim + j + dim],_MM_HINT_T0);
 			}
 
 			C[i*dim+j]=sum;
@@ -214,7 +227,22 @@ void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_s
  * @note 		The block size should be a multiple of the dimension of the matrices.
 */
 void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
-
+	for (int i=0; i<dim; i+=block_size){
+		for (int j=0; j<dim; j+=block_size){
+			for (int k=0; k<dim; k+=block_size){
+				
+				/*
+				for (int k1=k; k1<k+block_size; k1++){
+					for (int i1=i; i1<i+block_size; i1++){
+						for (int j1 = j; j1<j+block_size; j1++){
+							C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
+						}
+					}
+				}
+				*/
+			}
+		}
+	}
 }
 
 /**
