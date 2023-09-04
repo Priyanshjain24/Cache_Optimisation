@@ -11,7 +11,7 @@
 // defines
 // NOTE: you can change this value as per your requirement
 #define BLOCK_SIZE 50		// size of the block
-#define Prefetch_Jump 3     // No of iterations later for which prefetch is called
+#define Prefetch_Jump 32     // No of iterations later for which prefetch is called
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -279,6 +279,60 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
  * @note 		You can assume that the matrices are square matrices.
 */
 void simd_prefetch_mat_mul(double *A, double *B, double *C, int dim) {
+
+	for (int i = 0; i < dim; ++i) {
+
+
+			__m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
+			__builtin_prefetch(&B[0],0,1);
+			__builtin_prefetch(&A[i*dim],0,3);
+
+			__builtin_prefetch(&C[i*dim],1,3);
+
+            for (int k = 0; k < dim - (dim % 8); k += 8) {
+				__builtin_prefetch(&B[k*dim+Prefetch_Jump],0,1);
+				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
+                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
+                __m512d b = _mm512_loadu_pd(&B[k * dim]); // Load 8 elements from column j of matrix B
+				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
+            }
+
+            double result[8];
+            _mm512_storeu_pd(result, sum);
+
+            // Add the result of SIMD instructions to the destination matrix
+            C[i * dim] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
+
+            // Handle the remaining values normally
+            for (int k = dim - (dim % 8); k < dim; ++k) {
+                C[i * dim] += A[i * dim + k] * B[k * dim];
+            }
+
+
+        for (int j = 1; j < dim; ++j) {
+            __m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
+
+			__builtin_prefetch(&C[i*dim+j],1,3);
+
+            for (int k = 0; k < dim - (dim % 8); k += 8) {
+				__builtin_prefetch(&B[k*dim+j+Prefetch_Jump],0,1);
+                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
+                __m512d b = _mm512_loadu_pd(&B[k * dim + j]); // Load 8 elements from column j of matrix B
+				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
+            }
+
+            double result[8];
+            _mm512_storeu_pd(result, sum);
+
+            // Add the result of SIMD instructions to the destination matrix
+            C[i * dim + j] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
+
+            // Handle the remaining values normally
+            for (int k = dim - (dim % 8); k < dim; ++k) {
+                C[i * dim + j] += A[i * dim + k] * B[k * dim + j];
+            }
+        }
+    }
 
 }
 
