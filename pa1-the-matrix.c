@@ -11,7 +11,7 @@
 // defines
 // NOTE: you can change this value as per your requirement
 #define BLOCK_SIZE 50		// size of the block
-#define Prefetch_Jump 7     // No of iterations later for which prefetch is called
+#define Prefetch_Jump 3     // No of iterations later for which prefetch is called
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -89,6 +89,7 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 	for (int i=0; i<dim; i+=block_size){
 		for (int j=0; j<dim; j+=block_size){
 			for (int k=0; k<dim; k+=block_size){
+
 				for (int k1=k; k1<k+block_size; k1++){
 					for (int i1=i; i1<i+block_size; i1++){
 						for (int j1 = j; j1<j+block_size; j1++){
@@ -96,6 +97,7 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 						}
 					}
 				}
+
 			}
 		}
 	}
@@ -227,19 +229,42 @@ void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_s
  * @note 		The block size should be a multiple of the dimension of the matrices.
 */
 void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
+
+	double temp=0.0;
+
 	for (int i=0; i<dim; i+=block_size){
 		for (int j=0; j<dim; j+=block_size){
 			for (int k=0; k<dim; k+=block_size){
 				
-				/*
 				for (int k1=k; k1<k+block_size; k1++){
-					for (int i1=i; i1<i+block_size; i1++){
+
+					__builtin_prefetch(&A[i*dim+k1],0,1);
+					__builtin_prefetch(&B[k1*dim],0,3);
+					__builtin_prefetch(&C[i*dim+j],1,1);
+
+
+					temp=A[i*dim+k1];
+
+					for(int j1=j; j1<j+block_size; j1++)
+					{
+						__builtin_prefetch(&B[k1*dim + Prefetch_Jump],0,3);
+						__builtin_prefetch(&C[i*dim+j1+Prefetch_Jump],1,1);
+						C[i*dim+j1] += temp * B[k1 * dim + j1];
+					}
+
+					for (int i1=i+1; i1<i+block_size; i1++){
+						__builtin_prefetch(&A[i1*dim+k1+Prefetch_Jump],0,1);
+
+						temp=A[i1*dim+k1];
+
 						for (int j1 = j; j1<j+block_size; j1++){
-							C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
+							__builtin_prefetch(&C[i1*dim+j1+Prefetch_Jump],1,1);
+							C[i1 * dim + j1] += temp * B[k1 * dim + j1];
 						}
+
 					}
 				}
-				*/
+				
 			}
 		}
 	}
