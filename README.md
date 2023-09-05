@@ -67,6 +67,8 @@ SIMD (Single Instruction, Multiple Data) instructions are specialized instructio
 ---
 ## Task 3: Software Prefetching
 
+<br>
+
 Software prefetching enhances matrix multiplication by proactively fetching data from memory before it's needed, reducing memory access latency. This optimization boosts cache utilization, reducing cache misses and improving CPU efficiency. It also facilitates parallelism by overlapping data loading and computation, harnessing CPU resources more effectively. The multiplication here involved traversing in ijk loop format.
 Steps involved:
 
@@ -82,8 +84,6 @@ Steps involved:
 | 200         |     1.55    | 
 | 800         |     1.48    |
 
-<br>
-
 ---
 ## Bonus Task 1: Blocked Matrix Multiplication + SIMD instructions
 
@@ -91,23 +91,25 @@ Steps involved:
 
 ---
 ## Bonus Task 2: Blocked Matrix Multiplication + Software Prefetching
-| Matrix Size | Performance | 
-|-------------|-------------|
-| 100         |             | 
-| 200         |             | 
-| 800         |             |
 
 <br>
 
+| Matrix Size | Performance | 
+|-------------|-------------|
+| 100         |    1.62     | 
+| 200         |    1.21     | 
+| 800         |    1.29     |
+
 ---
 ## Bonus Task 3: SIMD instructions + Software Prefetching
+
+<br>
+
 | Matrix Size | Performance | 
 |-------------|-------------|
 | 100         |    5.00     | 
 | 200         |    4.10     | 
 | 800         |    4.00     |
-
-<br>
 
 ---
 ## Bonus Task 4: Bloced Matrix Multiplication + SIMD instructions + Software Prefetching
@@ -120,6 +122,8 @@ Steps involved:
 Blocked Matrix Multiplication improves cache efficiency but requires careful block size selection. SIMD Instructions leverage parallelism but depend on proper data alignment. Software Prefetching reduces cache misses but needs precise tuning. Combinations like Blocking + SIMD or Prefetching offer substantial gains but introduce complexity. Effective optimization depends on understanding hardware, data patterns, and careful parameter tuning for optimal performance.
 
 Knowing hardware details is vital for peak performance. Things like cache size, memory hierarchy, and vectorization impact how we design and optimize algorithms. Neglecting them leads to inefficiencies, slower memory access, and performance bottlenecks. To make the most of parallelism, reduce memory delays, and boost cache efficiency, software should align with hardware specifics, ensuring faster execution and better processor use.
+
+![Performance Comparision](./Plot.jpeg)
 
 <br>
 
