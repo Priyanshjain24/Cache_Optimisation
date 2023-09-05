@@ -142,7 +142,7 @@ void simd_mat_mul(double *A, double *B, double *C, int dim) {
 void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 	for (int i = 0; i < dim; i++) {
-		__builtin_prefetch(&A[i*dim],0,3);
+		__builtin_prefetch(&A[i*dim],0,1);
 		__builtin_prefetch(&B[0],0,1);
 		__builtin_prefetch(&C[i*dim],1,1);
 
@@ -151,7 +151,7 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 			for (int k = 0; k < dim; k++) {
 				__builtin_prefetch(&B[(k+Prefetch_Jump)*dim],0,1);
 				// if((i*dim+k+Prefetch_Jump)%Prefetch_Jump==0)__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
-				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
+				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,1);
 
 				sum += A[i * dim + k] * B[k * dim];
 			}
@@ -160,12 +160,12 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 		for (int j = 1; j < dim; j++) {
 			// if((i*dim+j)%Prefetch_Jump==0)__builtin_prefetch(&C[i*dim+j],1,1);
-			__builtin_prefetch(&C[i*dim+j],1,1);
+			// __builtin_prefetch(&C[i*dim+j],1,1);
 
 			sum=0.0;
 
 			for (int k = 0; k < dim; k++) {
-				__builtin_prefetch(&B[(k+Prefetch_Jump)*dim+j],0,1);
+				// __builtin_prefetch(&B[(k+Prefetch_Jump)*dim+j],0,1);
 				sum += A[i * dim + k] * B[k * dim + j];
 			}
 
@@ -188,8 +188,10 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
     for (int i = 0; i < dim; i += block_size) {
-        for (int j = 0; j < dim; j += block_size) {
-            for (int k = 0; k < dim; k += block_size) {
+        for (int k = 0; k < dim; k += block_size) {
+            for (int j = 0; j < dim; j += block_size) {
+
+				printf(" i: %d j: %d k: %d \n", i,j,k);
 				for (int ii = i; ii < i+block_size; ++ii) {
 					for (int kk = k; kk < k+block_size; ++kk) {
 						__m512d constant_vector = _mm512_set1_pd(A[ii * dim + kk]);
@@ -233,7 +235,7 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
 				for (int k1=k; k1<k+block_size; k1++){
 
 					__builtin_prefetch(&A[i*dim+k1],0,1);
-					__builtin_prefetch(&B[k1*dim],0,3);
+					__builtin_prefetch(&B[k1*dim],0,1);
 					__builtin_prefetch(&C[i*dim+j],1,1);
 
 
@@ -241,7 +243,7 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
 
 					for(int j1=j; j1<j+block_size; j1++)
 					{
-						__builtin_prefetch(&B[k1*dim + Prefetch_Jump],0,3);
+						__builtin_prefetch(&B[k1*dim + Prefetch_Jump],0,1);
 						__builtin_prefetch(&C[i*dim+j1+Prefetch_Jump],1,1);
 						C[i*dim+j1] += temp * B[k1 * dim + j1];
 					}
@@ -252,7 +254,7 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
 						temp=A[i1*dim+k1];
 
 						for (int j1 = j; j1<j+block_size; j1++){
-							__builtin_prefetch(&C[i1*dim+j1+Prefetch_Jump],1,1);
+							// __builtin_prefetch(&C[i1*dim+j1+Prefetch_Jump],1,1);
 							C[i1 * dim + j1] += temp * B[k1 * dim + j1];
 						}
 
@@ -387,6 +389,9 @@ int main(int argc, char **argv) {
 		initialize_matrix(A, matrix_dim, matrix_dim);
 		initialize_matrix(B, matrix_dim, matrix_dim);
 
+		// print(A, matrix_dim);
+		// print(B, matrix_dim);
+
 		// perform normal matrix multiplication
 		t_normal_mult = clock();
 		normal_mat_mul(A, B, C, matrix_dim);
@@ -397,7 +402,7 @@ int main(int argc, char **argv) {
 
 		double *Z = (double *)malloc(matrix_dim*matrix_dim*sizeof(double));
 		copy(C,Z,matrix_dim);
-		print(Z,matrix_dim);
+		// print(Z,matrix_dim);
 
 
 	#ifdef OPTIMIZE_BLOCKING
@@ -413,7 +418,7 @@ int main(int argc, char **argv) {
 		time_blocking_mult = ((double)t_blocking_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking matrix multiplication took %f seconds to execute \n", time_blocking_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_mult);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_SIMD
@@ -447,7 +452,7 @@ int main(int argc, char **argv) {
 		time_prefetch_mult = ((double)t_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Prefetching matrix multiplication took %f seconds to execute \n", time_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_prefetch_mult);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD
@@ -463,8 +468,8 @@ int main(int argc, char **argv) {
 		time_blocking_simd_mult = ((double)t_blocking_simd_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with SIMD matrix multiplication took %f seconds to execute \n", time_blocking_simd_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_simd_mult);
-		print(C,matrix_dim);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// print(C,matrix_dim);
+		// printf("%d \n",check(C,Z,matrix_dim));
 		
 	#endif
 
@@ -481,7 +486,7 @@ int main(int argc, char **argv) {
 		time_blocking_prefetch_mult = ((double)t_blocking_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with prefetching matrix multiplication took %f seconds to execute \n", time_blocking_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_prefetch_mult);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_SIMD_PREFETCH
@@ -497,7 +502,7 @@ int main(int argc, char **argv) {
 		time_simd_prefetch_mult = ((double)t_simd_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("SIMD with prefetching matrix multiplication took %f seconds to execute \n", time_simd_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_simd_prefetch_mult);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD_PREFETCH
@@ -513,7 +518,7 @@ int main(int argc, char **argv) {
 		time_blocking_simd_prefetch_mult = ((double)t_blocking_simd_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with SIMD and prefetching matrix multiplication took %f seconds to execute \n", time_blocking_simd_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_simd_prefetch_mult);
-		printf("%d \n",check(C,Z,matrix_dim));
+		// printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 		// free allocated memory

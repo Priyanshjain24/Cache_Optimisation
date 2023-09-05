@@ -52,6 +52,17 @@ void initialize_matrix(double *matrix, int rows, int cols) {
 	}
 }
 
+void initialize_matrix2(double *matrix, int rows, int cols) {
+
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			// if(i==j) 
+			matrix[i*cols + j]=1;
+			// else matrix[i*cols+j] = 0;
+		}
+	}
+}
+
 void initialize_result_matrix(double *matrix, int rows, int cols) {
 
 	for (int i = 0; i < rows; i++) {
@@ -105,6 +116,74 @@ int check(double *A, double *B, int matrix_dim)
 	return 1;
 }
 
+void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
+    for (int i = 0; i < dim; i += block_size) {
+        for (int k = 0; k < dim; k += block_size) {
+            for (int j = 0; j < dim; j += block_size) {
+
+				// printf(" i: %d j: %d k: %d \n", i,j,k);
+				for (int ii = i; ii < i+block_size; ++ii) {
+					for (int kk = k; kk < k+block_size; ++kk) {
+						__m512d constant_vector = _mm512_set1_pd(A[ii * dim + kk]);
+
+						for (int jj = j; jj < (j+block_size) - ((j+block_size) % 8); jj += 8) {
+							__m512d c = _mm512_loadu_pd(&C[ii * dim + jj]); // Load 8 elements from row i of matrix C
+							__m512d b = _mm512_loadu_pd(&B[kk * dim + jj]); // Load 8 elements from column j of matrix B
+							c = _mm512_fmadd_pd(constant_vector, b, c); // Fused multiply-add operation
+							_mm512_storeu_pd(&C[ii * dim + jj], c); // Store the result back into c
+						}
+
+						// Handle the remaining values normally
+						for (int jj = (j+block_size) - ((j+block_size) % 8); jj < j+block_size; ++jj) {
+							C[ii * dim + jj] += A[ii * dim + kk] * B[kk * dim + jj];
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void printRatio(double *A, double *B, int matrix_dim)
+{
+		printf("\n");
+	for(int i=0; i<matrix_dim; i++)
+		{
+			for(int j=0; j<matrix_dim; j++)
+			{
+				double d=A[i*matrix_dim+j]/(1.0*B[i*matrix_dim+j]);
+				printf("%f ",d);
+			}
+			printf("\n");
+		}
+	printf("\n");
+	return;
+}
+
+
+#include <immintrin.h>
+
+void blocking_simd_mat_mul2(double *A, double *B, double *C, int dim, int block_size) {
+    for (int i = 0; i < dim; i += block_size) {
+        for (int k = 0; k < dim; k += block_size) {
+            for (int j = 0; j < dim; j += block_size) {
+                for (int ii = i; ii < i + block_size; ii++) {
+                    for (int kk = k; kk < k + block_size; kk++) {
+                        __m512d a = _mm512_broadcastsd_pd(_mm_load_sd(&A[ii * dim + kk]));
+                        for (int jj = j; jj < j + block_size; jj += 8) {
+                            __m512d b = _mm512_loadu_pd(&B[kk * dim + jj]);
+                            __m512d c = _mm512_loadu_pd(&C[ii * dim + jj]);
+                            c = _mm512_fmadd_pd(a, b, c);
+                            _mm512_storeu_pd(&C[ii * dim + jj], c);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 int main()
 {
     int dim;
@@ -121,11 +200,12 @@ int main()
     initialize_matrix(B,dim,dim);
 
     normal_mat_mul(A,B,C,dim);
-    simd_mat_mul(A,B,D,dim);
+    blocking_simd_mat_mul2(A,B,D,dim,2);
 
     print(C,dim);
     print(D,dim);
     printf("\n %d \n",check(C,D,dim));
+	printRatio(D,C,dim);
 
     return 0;
 }
