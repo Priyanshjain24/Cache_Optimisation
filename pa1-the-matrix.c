@@ -11,7 +11,7 @@
 // defines
 // NOTE: you can change this value as per your requirement
 #define BLOCK_SIZE 50		// size of the block
-#define Prefetch_Jump 32     // No of iterations later for which prefetch is called
+#define Prefetch_Jump 8     // No of iterations later for which prefetch is called
 
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
@@ -112,23 +112,18 @@ void blocking_mat_mul(double *A, double *B, double *C, int dim, int block_size) 
 
 void simd_mat_mul(double *A, double *B, double *C, int dim) {
     for (int i = 0; i < dim; ++i) {
-        for (int j = 0; j < dim; ++j) {
-            __m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
+        for (int k = 0; k < dim; k++) {
+            __m512d constant_vector = _mm512_set1_pd(A[i * dim + k]);
 
-            for (int k = 0; k < dim - (dim % 8); k += 8) {
-                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
+            for (int j = 0; j < dim - (dim % 8); j += 8) {
+                __m512d c = _mm512_loadu_pd(&C[i * dim + j]); // Load 8 elements from row i of matrix C
                 __m512d b = _mm512_loadu_pd(&B[k * dim + j]); // Load 8 elements from column j of matrix B
-				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
+                c = _mm512_fmadd_pd(constant_vector, b, c); // Fused multiply-add operation
+                _mm512_storeu_pd(&C[i * dim + j], c); // Store the result back into c
             }
 
-            double result[8];
-            _mm512_storeu_pd(result, sum);
-
-            // Add the result of SIMD instructions to the destination matrix
-            C[i * dim + j] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
-
             // Handle the remaining values normally
-            for (int k = dim - (dim % 8); k < dim; ++k) {
+            for (int j = dim - (dim % 8); j < dim; ++j) {
                 C[i * dim + j] += A[i * dim + k] * B[k * dim + j];
             }
         }
@@ -155,14 +150,18 @@ void prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
 			for (int k = 0; k < dim; k++) {
 				__builtin_prefetch(&B[(k+Prefetch_Jump)*dim],0,1);
-				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,2);
+				// if((i*dim+k+Prefetch_Jump)%Prefetch_Jump==0)__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
+				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
+
 				sum += A[i * dim + k] * B[k * dim];
 			}
 
 			C[i*dim]=sum;
 
 		for (int j = 1; j < dim; j++) {
+			// if((i*dim+j)%Prefetch_Jump==0)__builtin_prefetch(&C[i*dim+j],1,1);
 			__builtin_prefetch(&C[i*dim+j],1,1);
+
 			sum=0.0;
 
 			for (int k = 0; k < dim; k++) {
@@ -191,32 +190,28 @@ void blocking_simd_mat_mul(double *A, double *B, double *C, int dim, int block_s
     for (int i = 0; i < dim; i += block_size) {
         for (int j = 0; j < dim; j += block_size) {
             for (int k = 0; k < dim; k += block_size) {
-                for (int i1 = i; i1 < i + block_size; i1++) {
-                    for (int j1 = j; j1 < j + block_size; j1++) {
-                        __m512d sum = _mm512_setzero_pd(); // Initialize a 512-bit SIMD register to zero
+				for (int ii = i; ii < i+block_size; ++ii) {
+					for (int kk = k; kk < k+block_size; ++kk) {
+						__m512d constant_vector = _mm512_set1_pd(A[ii * dim + kk]);
 
-                        for (int k1 = k; k1 < k + block_size; k1 += 8) {
-                            __m512d a = _mm512_loadu_pd(&A[i1 * dim + k1]);
-                            __m512d b = _mm512_loadu_pd(&B[k1 * dim + j1]);
-                            sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
-                        }
+						for (int jj = j; jj < (j+block_size) - ((j+block_size) % 8); jj += 8) {
+							__m512d c = _mm512_loadu_pd(&C[ii * dim + jj]); // Load 8 elements from row i of matrix C
+							__m512d b = _mm512_loadu_pd(&B[kk * dim + jj]); // Load 8 elements from column j of matrix B
+							c = _mm512_fmadd_pd(constant_vector, b, c); // Fused multiply-add operation
+							_mm512_storeu_pd(&C[ii * dim + jj], c); // Store the result back into c
+						}
 
-                        double result[8];
-                        _mm512_storeu_pd(result, sum);
-
-                        // Accumulate the results from SIMD instructions
-                        C[i1 * dim + j1] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
-
-                        // Handle the remaining values normally
-                        for (int k1 = k + block_size - (block_size % 8); k1 < k + block_size; k1++) {
-                            C[i1 * dim + j1] += A[i1 * dim + k1] * B[k1 * dim + j1];
-                        }
-                    }
-                }
-            }
-        }
-    }
+						// Handle the remaining values normally
+						for (int jj = (j+block_size) - ((j+block_size) % 8); jj < j+block_size; ++jj) {
+							C[ii * dim + jj] += A[ii * dim + kk] * B[kk * dim + jj];
+						}
+					}
+				}
+			}
+		}
+	}
 }
+
 
 /**
  * @brief 		Bonus Task 2: Performs matrix multiplication of two matrices using blocking along with software prefetching.
@@ -279,60 +274,28 @@ void blocking_prefetch_mat_mul(double *A, double *B, double *C, int dim, int blo
 */
 void simd_prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 
-	for (int i = 0; i < dim; ++i) {
+    for (int i = 0; i < dim; ++i) {
+        for (int k = 0; k < dim; k++) {
+			__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,1);
+			__builtin_prefetch(&C[i*dim],0,3);
+			__builtin_prefetch(&B[k*dim],0,3);
+            __m512d constant_vector = _mm512_set1_pd(A[i * dim + k]);
 
-
-			__m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
-			__builtin_prefetch(&B[0],0,1);
-			__builtin_prefetch(&A[i*dim],0,3);
-
-			__builtin_prefetch(&C[i*dim],1,3);
-
-            for (int k = 0; k < dim - (dim % 8); k += 8) {
-				__builtin_prefetch(&B[k*dim+Prefetch_Jump],0,1);
-				__builtin_prefetch(&A[i*dim+k+Prefetch_Jump],0,3);
-                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
-                __m512d b = _mm512_loadu_pd(&B[k * dim]); // Load 8 elements from column j of matrix B
-				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
-            }
-
-            double result[8];
-            _mm512_storeu_pd(result, sum);
-
-            // Add the result of SIMD instructions to the destination matrix
-            C[i * dim] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
-
-            // Handle the remaining values normally
-            for (int k = dim - (dim % 8); k < dim; ++k) {
-                C[i * dim] += A[i * dim + k] * B[k * dim];
-            }
-
-
-        for (int j = 1; j < dim; ++j) {
-            __m512d sum = _mm512_setzero_pd();  // Initialize a 512-bit SIMD register to zero
-
-			__builtin_prefetch(&C[i*dim+j],1,3);
-
-            for (int k = 0; k < dim - (dim % 8); k += 8) {
-				__builtin_prefetch(&B[k*dim+j+Prefetch_Jump],0,1);
-                __m512d a = _mm512_loadu_pd(&A[i * dim + k]); // Load 8 elements from row i of matrix A
+            for (int j = 0; j < dim - (dim % 8); j += 8) {
+				__builtin_prefetch(&C[i*dim+j+Prefetch_Jump],0,3);
+				__builtin_prefetch(&B[k*dim+j+Prefetch_Jump],0,3);
+                __m512d c = _mm512_loadu_pd(&C[i * dim + j]); // Load 8 elements from row i of matrix C
                 __m512d b = _mm512_loadu_pd(&B[k * dim + j]); // Load 8 elements from column j of matrix B
-				sum = _mm512_fmadd_pd(a, b, sum); // Fused multiply-add operation
+                c = _mm512_fmadd_pd(constant_vector, b, c); // Fused multiply-add operation
+                _mm512_storeu_pd(&C[i * dim + j], c); // Store the result back into c
             }
 
-            double result[8];
-            _mm512_storeu_pd(result, sum);
-
-            // Add the result of SIMD instructions to the destination matrix
-            C[i * dim + j] = result[0] + result[1] + result[2] + result[3] + result[4] + result[5] + result[6] + result[7];
-
             // Handle the remaining values normally
-            for (int k = dim - (dim % 8); k < dim; ++k) {
+            for (int j = dim - (dim % 8); j < dim; ++j) {
                 C[i * dim + j] += A[i * dim + k] * B[k * dim + j];
             }
         }
     }
-
 }
 
 
@@ -348,6 +311,46 @@ void simd_prefetch_mat_mul(double *A, double *B, double *C, int dim) {
 */
 void blocking_simd_prefetch_mat_mul(double *A, double *B, double *C, int dim, int block_size) {
 
+}
+
+void print(double *C, int matrix_dim)
+{
+	printf("\n");
+	for(int i=0; i<matrix_dim; i++)
+		{
+			for(int j=0; j<matrix_dim; j++)
+			{
+				printf("%f ",C[i*matrix_dim+j]);
+			}
+			printf("\n");
+		}
+	printf("\n");
+	return;
+}
+
+void copy(double *C, double *Z, int matrix_dim)
+{
+	for(int i=0; i<matrix_dim; i++)
+		{
+			for(int j=0; j<matrix_dim; j++)
+			{
+				Z[i*matrix_dim+j]=C[i*matrix_dim+j];
+			}
+		}
+	return;
+}
+
+int check(double *A, double *B, int matrix_dim)
+{
+	for(int i=0; i<matrix_dim; i++)
+		{
+			for(int j=0; j<matrix_dim; j++)
+			{
+				if(abs(A[i*matrix_dim+j]-B[i*matrix_dim+j])>1e-6) return -1;
+			}
+		}
+
+	return 1;
 }
 
 // NOTE: DO NOT CHANGE ANYTHING BELOW THIS LINE
@@ -392,6 +395,11 @@ int main(int argc, char **argv) {
 		time_normal_mult = ((double)t_normal_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Normal matrix multiplication took %f seconds to execute \n\n", time_normal_mult);
 
+		double *Z = (double *)malloc(matrix_dim*matrix_dim*sizeof(double));
+		copy(C,Z,matrix_dim);
+		print(Z,matrix_dim);
+
+
 	#ifdef OPTIMIZE_BLOCKING
 		// Task 1: perform blocking matrix multiplication
 
@@ -405,6 +413,7 @@ int main(int argc, char **argv) {
 		time_blocking_mult = ((double)t_blocking_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking matrix multiplication took %f seconds to execute \n", time_blocking_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_SIMD
@@ -420,6 +429,9 @@ int main(int argc, char **argv) {
 		time_simd_mult = ((double)t_simd_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("SIMD matrix multiplication took %f seconds to execute \n", time_simd_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_simd_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
+		// print(C,matrix_dim);
+		
 	#endif
 
 	#ifdef OPTIMIZE_PREFETCH
@@ -435,6 +447,7 @@ int main(int argc, char **argv) {
 		time_prefetch_mult = ((double)t_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Prefetching matrix multiplication took %f seconds to execute \n", time_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_prefetch_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD
@@ -450,6 +463,9 @@ int main(int argc, char **argv) {
 		time_blocking_simd_mult = ((double)t_blocking_simd_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with SIMD matrix multiplication took %f seconds to execute \n", time_blocking_simd_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_simd_mult);
+		print(C,matrix_dim);
+		printf("%d \n",check(C,Z,matrix_dim));
+		
 	#endif
 
 	#ifdef OPTIMIZE_BLOCKING_PREFETCH
@@ -465,6 +481,7 @@ int main(int argc, char **argv) {
 		time_blocking_prefetch_mult = ((double)t_blocking_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with prefetching matrix multiplication took %f seconds to execute \n", time_blocking_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_prefetch_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_SIMD_PREFETCH
@@ -480,6 +497,7 @@ int main(int argc, char **argv) {
 		time_simd_prefetch_mult = ((double)t_simd_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("SIMD with prefetching matrix multiplication took %f seconds to execute \n", time_simd_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_simd_prefetch_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 	#ifdef OPTIMIZE_BLOCKING_SIMD_PREFETCH
@@ -495,6 +513,7 @@ int main(int argc, char **argv) {
 		time_blocking_simd_prefetch_mult = ((double)t_blocking_simd_prefetch_mult) / CLOCKS_PER_SEC; // in seconds
 		printf("Blocking with SIMD and prefetching matrix multiplication took %f seconds to execute \n", time_blocking_simd_prefetch_mult);
 		printf("Normalized performance: %f \n\n", time_normal_mult / time_blocking_simd_prefetch_mult);
+		printf("%d \n",check(C,Z,matrix_dim));
 	#endif
 
 		// free allocated memory

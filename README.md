@@ -504,4 +504,57 @@ On average the SIMD software prefetching matrix multiplication had a speedup of 
 <br>
 
 ---
+## Results
+
+<table>
+  <thead>
+    <tr>
+      <th>Matrix Size</th>
+      <th>Blocking</th>
+      <th>SIMD</th>
+      <th>Prefetch</th>
+      <th>Blocked-SIMD</th>
+      <th>BLocked-Prefetch</th>
+      <th>SIMD-Prefetch</th>
+      <th>Blocked-SIMD-Prefetch</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>100</td>
+      <td>Row 1, Col 2</td>
+      <td>Row 1, Col 3</td>
+      <td>Row 1, Col 4</td>
+      <td>Row 1, Col 5</td>
+      <td>Row 1, Col 6</td>
+      <td>Row 1, Col 7</td>
+      <td>Row 1, Col 8</td>
+    </tr>
+    <tr>
+      <td>200</td>
+      <td>Row 2, Col 2</td>
+      <td>Row 2, Col 3</td>
+      <td>Row 2, Col 4</td>
+      <td>Row 2, Col 5</td>
+      <td>Row 2, Col 6</td>
+      <td>Row 2, Col 7</td>
+      <td>Row 2, Col 8</td>
+    </tr>
+    <tr>
+      <td>800</td>
+      <td>Row 3, Col 2</td>
+      <td>Row 3, Col 3</td>
+      <td>Row 3, Col 4</td>
+      <td>Row 3, Col 5</td>
+      <td>Row 3, Col 6</td>
+      <td>Row 3, Col 7</td>
+      <td>Row 3, Col 8</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<br>
+
+---
 <!-- All the best! :smile: -->
