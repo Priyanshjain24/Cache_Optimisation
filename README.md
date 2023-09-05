@@ -123,7 +123,7 @@ Blocked Matrix Multiplication improves cache efficiency but requires careful blo
 
 Knowing hardware details is vital for peak performance. Things like cache size, memory hierarchy, and vectorization impact how we design and optimize algorithms. Neglecting them leads to inefficiencies, slower memory access, and performance bottlenecks. To make the most of parallelism, reduce memory delays, and boost cache efficiency, software should align with hardware specifics, ensuring faster execution and better processor use.
 
-![Performance Comparision](./Plot.jpeg)
+![Performance Comparision](./Plot.jpg)
 
 <br>
 
