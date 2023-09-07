@@ -1,4 +1,4 @@
-# PA1-The-Matrix
+# The-Matrix
 
 Performed matrix multiplication using various optimization techniques and their combinations:
 - blocked matrix multiplication
