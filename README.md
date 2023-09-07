@@ -1,7 +1,6 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/mnOJa0WY)
 # PA1-The-Matrix
 
-Perform matrix multiplication using various optimization techniques:
+Performed matrix multiplication using various optimization techniques and their combinations:
 - blocked matrix multiplication
 - SIMD instructions
 - software prefetching
@@ -85,12 +84,7 @@ Steps involved:
 | 800         |     1.48    |
 
 ---
-## Bonus Task 1: Blocked Matrix Multiplication + SIMD instructions
-
-<br>
-
----
-## Bonus Task 2: Blocked Matrix Multiplication + Software Prefetching
+## Task 4: Blocked Matrix Multiplication + Software Prefetching
 
 <br>
 
@@ -101,7 +95,7 @@ Steps involved:
 | 800         |    1.29     |
 
 ---
-## Bonus Task 3: SIMD instructions + Software Prefetching
+## Task 5: SIMD instructions + Software Prefetching
 
 <br>
 
@@ -110,11 +104,6 @@ Steps involved:
 | 100         |    5.00     | 
 | 200         |    4.10     | 
 | 800         |    4.00     |
-
----
-## Bonus Task 4: Bloced Matrix Multiplication + SIMD instructions + Software Prefetching
-
-<br>
 
 ---
 ## Observations
