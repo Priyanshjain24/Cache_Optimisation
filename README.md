@@ -1,3 +1,12 @@
+# Accelerating CPU Performance
+
+Course: Advanced Computer Architecture (CS683)
+Professor: Biswanadan Panda
+
+Members:
+Priyansh Jain (210070063)
+Priyanshu Gupta (210070064)
+
 # The-Matrix
 
 Performed matrix multiplication using various optimization techniques and their combinations:
