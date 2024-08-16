@@ -1,10 +1,10 @@
 # Accelerating CPU Performance
 
-Course: Advanced Computer Architecture (CS683)
-Professor: Biswanadan Panda
+Course: Advanced Computer Architecture (CS683) <br> 
+Professor: Biswanadan Panda <br>
 
-Members:
-Priyansh Jain (210070063)
+Members: <br>
+Priyansh Jain (210070063) <br>
 Priyanshu Gupta (210070064)
 
 # The-Matrix
